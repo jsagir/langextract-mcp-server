@@ -15,7 +15,16 @@ def extract_structured_data(text: str, prompt_description: str, examples: List[D
     try:
         lx_examples = []
         for ex in examples:
-            extractions = [lx.data.Extraction(extraction_class=e.get('extraction_class', ''), extraction_text=e.get('extraction_text', ''), attributes=e.get('attributes', {})) for e in ex.get('extractions', [])]
+            extractions = [
+                lx.data.Extraction(
+                    extraction_class=e.get('extraction_class', ''),
+                    extraction_text=e.get('extraction_text', ''),
+                    attributes=e.get('attributes', {}),
+                    char_start=e.get('char_start', 0),
+                    char_end=e.get('char_end', len(e.get('extraction_text', '')))
+                ) 
+                for e in ex.get('extractions', [])
+            ]
             lx_examples.append(lx.data.ExampleData(text=ex.get('text', ''), extractions=extractions))
         
         api_key = os.environ.get('LANGEXTRACT_API_KEY')
@@ -94,7 +103,16 @@ def get_extraction_details(result_id: str) -> Dict[str, Any]:
 @mcp.tool()
 def create_example_template(extraction_classes: List[str]) -> Dict[str, Any]:
     """Generate example template."""
-    template = [{"text": "<example text>", "extractions": [{"extraction_class": c, "extraction_text": f"<text for {c}>", "attributes": {}} for c in extraction_classes]}]
+    template = [{
+        "text": "<example text>",
+        "extractions": [{
+            "extraction_class": c,
+            "extraction_text": f"<text for {c}>",
+            "attributes": {},
+            "char_start": 0,
+            "char_end": 0
+        } for c in extraction_classes]
+    }]
     return {'template': template}
 
 @mcp.tool()
