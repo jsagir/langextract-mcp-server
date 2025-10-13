@@ -1,4 +1,4 @@
-﻿"""LangExtract MCP Server"""
+"""LangExtract MCP Server"""
 from fastmcp import FastMCP
 import langextract as lx
 import os
@@ -6,7 +6,7 @@ import tempfile
 from typing import List, Dict, Any
 from pathlib import Path
 
-mcp = FastMCP("LangExtract", description="Extract structured data from text")
+mcp = FastMCP("LangExtract")
 RESULTS_STORE = {}
 
 @mcp.tool()
