@@ -1,5 +1,5 @@
 """
-LangExtract MCP Server - Production Version (FIXED)
+LangExtract MCP Server - Production Version (FINAL FIX)
 Extract structured information from unstructured text using Gemini/Ollama models
 
 Deploy: Push to GitHub and deploy on fastmcp.cloud
@@ -90,7 +90,7 @@ async def extract_structured_data(
                     if 'extraction_class' not in e or 'extraction_text' not in e:
                         return {'success': False, 'error': f'Example {idx} extraction missing required fields'}
                     
-                    # Don't pass char_start/char_end to Extraction - let LangExtract handle it
+                    # Don't pass char_start/char_end - LangExtract handles it
                     extractions.append(
                         lx.data.Extraction(
                             extraction_class=e['extraction_class'],
@@ -129,7 +129,7 @@ async def extract_structured_data(
             max_char_buffer=max_char_buffer
         )
         
-        # Convert results - safely access attributes
+        # Convert results - safely extract all attributes
         extractions_list = []
         for e in result.extractions:
             extraction_dict = {
@@ -138,10 +138,21 @@ async def extract_structured_data(
                 'attributes': e.attributes if hasattr(e, 'attributes') else {}
             }
             
-            # Try to get char positions if available
-            if hasattr(e, 'char_interval'):
-                extraction_dict['char_start'] = e.char_interval[0]
-                extraction_dict['char_end'] = e.char_interval[1]
+            # Handle char_interval object (has start/end attributes or __getitem__)
+            if hasattr(e, 'char_interval') and e.char_interval is not None:
+                try:
+                    # Try tuple-like access
+                    if hasattr(e.char_interval, '__iter__'):
+                        interval_list = list(e.char_interval)
+                        extraction_dict['char_start'] = interval_list[0]
+                        extraction_dict['char_end'] = interval_list[1]
+                    # Try attribute access
+                    elif hasattr(e.char_interval, 'start') and hasattr(e.char_interval, 'end'):
+                        extraction_dict['char_start'] = e.char_interval.start
+                        extraction_dict['char_end'] = e.char_interval.end
+                except:
+                    # If all else fails, just skip char positions
+                    pass
             
             extractions_list.append(extraction_dict)
         
@@ -165,7 +176,7 @@ async def extract_structured_data(
         
     except Exception as e:
         await ctx.error(f"Extraction failed: {str(e)}")
-        return {'success': False, 'error': str(e)}
+        return {'success': False, 'error': str(e), 'error_type': type(e).__name__}
 
 
 @mcp.tool
@@ -236,9 +247,17 @@ async def extract_from_url(
                 'attributes': e.attributes if hasattr(e, 'attributes') else {}
             }
             
-            if hasattr(e, 'char_interval'):
-                extraction_dict['char_start'] = e.char_interval[0]
-                extraction_dict['char_end'] = e.char_interval[1]
+            if hasattr(e, 'char_interval') and e.char_interval is not None:
+                try:
+                    if hasattr(e.char_interval, '__iter__'):
+                        interval_list = list(e.char_interval)
+                        extraction_dict['char_start'] = interval_list[0]
+                        extraction_dict['char_end'] = interval_list[1]
+                    elif hasattr(e.char_interval, 'start') and hasattr(e.char_interval, 'end'):
+                        extraction_dict['char_start'] = e.char_interval.start
+                        extraction_dict['char_end'] = e.char_interval.end
+                except:
+                    pass
             
             extractions_list.append(extraction_dict)
         
@@ -404,9 +423,17 @@ async def get_extraction_details(
             'attributes': e.attributes if hasattr(e, 'attributes') else {}
         }
         
-        if hasattr(e, 'char_interval'):
-            extraction_dict['char_start'] = e.char_interval[0]
-            extraction_dict['char_end'] = e.char_interval[1]
+        if hasattr(e, 'char_interval') and e.char_interval is not None:
+            try:
+                if hasattr(e.char_interval, '__iter__'):
+                    interval_list = list(e.char_interval)
+                    extraction_dict['char_start'] = interval_list[0]
+                    extraction_dict['char_end'] = interval_list[1]
+                elif hasattr(e.char_interval, 'start') and hasattr(e.char_interval, 'end'):
+                    extraction_dict['char_start'] = e.char_interval.start
+                    extraction_dict['char_end'] = e.char_interval.end
+            except:
+                pass
         
         extractions.append(extraction_dict)
     
