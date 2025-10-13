@@ -1,5 +1,5 @@
 """
-LangExtract MCP Server - Production Version
+LangExtract MCP Server - Production Version (FIXED)
 Extract structured information from unstructured text using Gemini/Ollama models
 
 Deploy: Push to GitHub and deploy on fastmcp.cloud
@@ -90,7 +90,7 @@ async def extract_structured_data(
                     if 'extraction_class' not in e or 'extraction_text' not in e:
                         return {'success': False, 'error': f'Example {idx} extraction missing required fields'}
                     
-                    # BUGFIX: Don't pass char_start/char_end - LangExtract calculates them
+                    # Don't pass char_start/char_end to Extraction - let LangExtract handle it
                     extractions.append(
                         lx.data.Extraction(
                             extraction_class=e['extraction_class'],
@@ -129,17 +129,21 @@ async def extract_structured_data(
             max_char_buffer=max_char_buffer
         )
         
-        # Convert results
-        extractions_list = [
-            {
+        # Convert results - safely access attributes
+        extractions_list = []
+        for e in result.extractions:
+            extraction_dict = {
                 'extraction_class': e.extraction_class,
                 'extraction_text': e.extraction_text,
-                'attributes': e.attributes,
-                'char_start': e.char_start,
-                'char_end': e.char_end
-            } 
-            for e in result.extractions
-        ]
+                'attributes': e.attributes if hasattr(e, 'attributes') else {}
+            }
+            
+            # Try to get char positions if available
+            if hasattr(e, 'char_interval'):
+                extraction_dict['char_start'] = e.char_interval[0]
+                extraction_dict['char_end'] = e.char_interval[1]
+            
+            extractions_list.append(extraction_dict)
         
         # Store result
         result_id = hashlib.md5(f"{text[:100]}{datetime.now().isoformat()}".encode()).hexdigest()
@@ -192,7 +196,7 @@ async def extract_from_url(
         if not url.startswith(('http://', 'https://')):
             return {'success': False, 'error': 'Invalid URL'}
         
-        # Convert examples - BUGFIX: removed char_start/char_end
+        # Convert examples
         lx_examples = []
         for ex in examples:
             extractions = [
@@ -224,16 +228,19 @@ async def extract_from_url(
         )
         
         # Process results
-        extractions_list = [
-            {
+        extractions_list = []
+        for e in result.extractions:
+            extraction_dict = {
                 'extraction_class': e.extraction_class,
                 'extraction_text': e.extraction_text,
-                'attributes': e.attributes,
-                'char_start': e.char_start,
-                'char_end': e.char_end
+                'attributes': e.attributes if hasattr(e, 'attributes') else {}
             }
-            for e in result.extractions
-        ]
+            
+            if hasattr(e, 'char_interval'):
+                extraction_dict['char_start'] = e.char_interval[0]
+                extraction_dict['char_end'] = e.char_interval[1]
+            
+            extractions_list.append(extraction_dict)
         
         result_id = hashlib.md5(f"{url}{datetime.now().isoformat()}".encode()).hexdigest()
         RESULTS_STORE[result_id] = result
@@ -389,16 +396,19 @@ async def get_extraction_details(
     
     result = RESULTS_STORE[result_id]
     
-    extractions = [
-        {
+    extractions = []
+    for e in result.extractions:
+        extraction_dict = {
             'extraction_class': e.extraction_class,
             'extraction_text': e.extraction_text,
-            'attributes': e.attributes,
-            'char_start': e.char_start,
-            'char_end': e.char_end
+            'attributes': e.attributes if hasattr(e, 'attributes') else {}
         }
-        for e in result.extractions
-    ]
+        
+        if hasattr(e, 'char_interval'):
+            extraction_dict['char_start'] = e.char_interval[0]
+            extraction_dict['char_end'] = e.char_interval[1]
+        
+        extractions.append(extraction_dict)
     
     # Group by class
     by_class = {}
