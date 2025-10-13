@@ -90,13 +90,12 @@ async def extract_structured_data(
                     if 'extraction_class' not in e or 'extraction_text' not in e:
                         return {'success': False, 'error': f'Example {idx} extraction missing required fields'}
                     
+                    # BUGFIX: Don't pass char_start/char_end - LangExtract calculates them
                     extractions.append(
                         lx.data.Extraction(
                             extraction_class=e['extraction_class'],
                             extraction_text=e['extraction_text'],
-                            attributes=e.get('attributes', {}),
-                            char_start=e.get('char_start', 0),
-                            char_end=e.get('char_end', len(e.get('extraction_text', '')))
+                            attributes=e.get('attributes', {})
                         )
                     )
                 
@@ -193,16 +192,14 @@ async def extract_from_url(
         if not url.startswith(('http://', 'https://')):
             return {'success': False, 'error': 'Invalid URL'}
         
-        # Convert examples
+        # Convert examples - BUGFIX: removed char_start/char_end
         lx_examples = []
         for ex in examples:
             extractions = [
                 lx.data.Extraction(
                     extraction_class=e['extraction_class'],
                     extraction_text=e['extraction_text'],
-                    attributes=e.get('attributes', {}),
-                    char_start=e.get('char_start', 0),
-                    char_end=e.get('char_end', len(e.get('extraction_text', '')))
+                    attributes=e.get('attributes', {})
                 )
                 for e in ex.get('extractions', [])
             ]
