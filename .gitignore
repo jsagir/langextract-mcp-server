@@ -1,0 +1,11 @@
+﻿__pycache__/
+*.py[cod]
+.Python
+venv/
+.env
+*.log
+.vscode/
+.idea/
+*.jsonl
+*.html
+output/
