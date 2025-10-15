@@ -1,4 +1,4 @@
-# LangExtract MCP Server - Enhanced for Research Context Extraction
+#Mindrian Speficic  LangExtract MCP Server - Enhanced for Research Context Extraction
 
 **MCP server for comprehensive research context extraction using LangExtract and Gemini AI.**
 
